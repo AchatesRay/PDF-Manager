@@ -2,21 +2,346 @@
 
 本地PDF管理工具，支持扫描版PDF的OCR识别和全文搜索。
 
-## 功能
+## 功能特性
 
-- 文件夹分类管理PDF文件
-- 自动识别扫描版PDF内容（OCR）
-- 全文搜索，支持中文
-- 内置PDF预览
+- **文件夹管理** - 创建文件夹分类管理PDF文件，支持多级嵌套
+- **智能识别** - 自动检测PDF类型（文字型/扫描型），选择最优处理方式
+- **OCR识别** - 使用PaddleOCR识别扫描版PDF中的中文内容
+- **全文搜索** - 基于Whoosh和jieba的中文全文搜索，支持关键词高亮
+- **PDF预览** - 内置PDF预览器，支持翻页、缩放
+- **批量导入** - 支持单个文件、多文件、整个文件夹批量导入
+- **完全离线** - 所有功能本地运行，无需联网
 
-## 安装
+## 系统要求
+
+| 项目 | 要求 |
+|------|------|
+| 操作系统 | Windows 10/11, macOS 10.15+, Linux |
+| Python | 3.10 或更高版本 |
+| 内存 | 最低 4GB，推荐 8GB+ |
+| 磁盘 | 至少 1GB 可用空间（含OCR模型） |
+
+## 安装指南
+
+### Windows
+
+1. **安装 Python**
+   - 从 [python.org](https://www.python.org/downloads/) 下载 Python 3.10+
+   - 安装时务必勾选 **"Add Python to PATH"**
+
+2. **下载项目**
+   ```powershell
+   git clone https://github.com/yourusername/pdf-manager.git
+   cd pdf-manager
+   ```
+
+3. **创建虚拟环境**
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+4. **安装依赖**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+### macOS / Linux
 
 ```bash
+# 克隆项目
+git clone https://github.com/yourusername/pdf-manager.git
+cd pdf-manager
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
-## 运行
+### 国内用户加速
+
+如果下载依赖较慢，可以使用国内镜像：
 
 ```bash
-python src/main.py
+pip install -r requirements.txt -i https://mirror.baidu.com/pypi/simple
 ```
+
+## 运行应用
+
+### 启动应用
+
+```bash
+# 激活虚拟环境
+# Windows:
+.\venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# 运行应用
+python -m src.main
+```
+
+### 首次运行
+
+首次运行时，PaddleOCR 会自动下载中文识别模型（约 100MB），请耐心等待。
+
+## 使用指南
+
+### 界面说明
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PDF Manager                                                    │
+├──────────────────┬──────────────────────────────────────────────┤
+│                  │  🔍 [搜索框________________] [搜索]          │
+│   📁 文件夹       ├──────────────────────────────────────────────┤
+│   ├─ 工作文档     │  📄 PDF列表                  [添加PDF] [删除] │
+│   │  ├─ 合同      │  ┌──────────────────────────────────────────┐│
+│   │  └─ 报告      │  │ 📑 报告.pdf      50页  ✓已完成           ││
+│   ├─ 个人资料     │  │ 📑 合同.pdf      12页  处理中 8/12       ││
+│   └─ 归档文件     │  └──────────────────────────────────────────┘│
+│                  ├──────────────────────────────────────────────┤
+│  [+新建文件夹]    │  📖 PDF预览                                  │
+│                  │  ┌──────────────────────────────────────────┐│
+│                  │  │                                          ││
+│                  │  │         [PDF页面渲染区域]                 ││
+│                  │  │                                          ││
+│                  │  └──────────────────────────────────────────┘│
+│                  │  [◀ 上一页]  1/50  [下一页 ▶]  [外部打开]    │
+└──────────────────┴──────────────────────────────────────────────┘
+```
+
+### 基本操作
+
+#### 1. 创建文件夹
+
+- 点击左下角 **"+ 新建文件夹"** 按钮
+- 或在文件夹上右键选择"新建子文件夹"
+
+#### 2. 添加PDF文件
+
+- 点击 **"添加PDF"** 按钮选择文件
+- 或拖拽PDF文件到窗口
+- 支持批量选择和文件夹导入
+
+#### 3. 搜索内容
+
+- 在搜索框输入关键词
+- 搜索结果按相关性排序
+- 点击结果可直接跳转到对应页面
+
+#### 4. 查看PDF
+
+- 单击PDF文件查看预览
+- 使用翻页按钮导航
+- 点击"外部打开"使用系统PDF阅读器打开
+
+#### 5. 删除PDF
+
+- 选中PDF后点击"删除"按钮
+- 确认后将删除文件、索引和所有相关数据
+
+### 设置
+
+通过 **文件 → 设置** 可配置：
+
+| 设置项 | 说明 | 默认值 |
+|--------|------|--------|
+| 存储路径 | 数据文件存储位置 | `./data` |
+| OCR并发数 | 同时处理的PDF数量 | 2 |
+
+## 项目结构
+
+```
+pdf-manager/
+├── src/
+│   ├── main.py                 # 应用入口
+│   ├── ui/                     # 界面层
+│   │   ├── main_window.py      # 主窗口
+│   │   ├── widgets/            # UI组件
+│   │   │   ├── folder_tree.py  # 文件夹树
+│   │   │   ├── pdf_list.py     # PDF列表
+│   │   │   └── pdf_viewer.py   # PDF预览
+│   │   └── dialogs/            # 对话框
+│   │       ├── settings_dialog.py
+│   │       └── import_dialog.py
+│   ├── core/                   # 业务逻辑层
+│   │   ├── folder_manager.py   # 文件夹管理
+│   │   ├── pdf_manager.py      # PDF管理
+│   │   └── search_service.py   # 搜索服务
+│   ├── services/               # 服务层
+│   │   ├── pdf_service.py      # PDF处理
+│   │   ├── ocr_service.py      # OCR识别
+│   │   └── index_service.py    # 索引服务
+│   ├── models/                 # 数据模型
+│   │   ├── database.py         # 数据库操作
+│   │   └── schemas.py          # 数据结构
+│   └── utils/                  # 工具函数
+│       ├── config.py           # 配置管理
+│       └── logger.py           # 日志工具
+├── tests/                      # 测试文件
+├── docs/                       # 文档
+├── requirements.txt            # 依赖列表
+└── README.md                   # 项目说明
+```
+
+## 技术架构
+
+### 技术栈
+
+| 组件 | 技术 | 说明 |
+|------|------|------|
+| GUI框架 | PyQt6 | 跨平台图形界面 |
+| OCR引擎 | PaddleOCR | 百度开源，中文识别效果最好 |
+| 搜索引擎 | Whoosh + jieba | 纯Python，支持中文分词 |
+| PDF处理 | PyMuPDF | 高效的PDF渲染和文本提取 |
+| 数据库 | SQLite | 轻量级本地数据库 |
+| 图像处理 | Pillow | 缩略图生成 |
+
+### 系统架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PDF Manager GUI                        │
+│                        (PyQt6)                              │
+├─────────────┬─────────────┬─────────────┬─────────────────┤
+│  文件管理模块  │  搜索模块    │  预览模块    │   设置模块      │
+├─────────────┴─────────────┴─────────────┴─────────────────┤
+│                      业务逻辑层                             │
+│  - 文件夹管理  - PDF导入  - OCR处理  - 搜索服务            │
+├───────────────────────────────────────────────────────────┤
+│                      服务层                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐   │
+│  │ OCR Service │  │Search Engine│  │  PDF Service     │   │
+│  │ (PaddleOCR) │  │(Whoosh+jieba)│  │  (PyMuPDF)       │   │
+│  └─────────────┘  └─────────────┘  └──────────────────┘   │
+├───────────────────────────────────────────────────────────┤
+│                      数据存储层                             │
+│  ┌─────────────────┐  ┌───────────────────────────────┐   │
+│  │ SQLite Database │  │ 文件存储 (PDF + 缩略图缓存)    │   │
+│  └─────────────────┘  └───────────────────────────────┘   │
+└───────────────────────────────────────────────────────────┘
+```
+
+### 数据流程
+
+```
+PDF导入 → 类型检测 → 文字型？ → 直接提取文字
+                         ↓ 否
+                    扫描型 → OCR识别图像
+                         ↓
+                    分词处理 → 写入索引
+                         ↓
+                      处理完成
+```
+
+## 开发指南
+
+### 开发环境搭建
+
+```bash
+# 克隆项目
+git clone https://github.com/yourusername/pdf-manager.git
+cd pdf-manager
+
+# 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# 或 .\venv\Scripts\activate  # Windows
+
+# 安装开发依赖
+pip install -r requirements.txt
+pip install pytest pytest-qt
+```
+
+### 运行测试
+
+```bash
+# 运行所有测试
+python -m pytest tests/ -v
+
+# 运行特定测试
+python -m pytest tests/test_pdf_service.py -v
+```
+
+### 代码规范
+
+- 使用 Python 3.10+ 语法
+- 遵循 PEP 8 编码规范
+- 使用类型注解
+- 编写单元测试
+
+### 打包发布
+
+使用 PyInstaller 打包成独立可执行文件：
+
+```bash
+# 安装 PyInstaller
+pip install pyinstaller
+
+# 打包
+pyinstaller --onefile --windowed --name "PDF Manager" src/main.py
+
+# 可执行文件在 dist/ 目录
+```
+
+## 常见问题
+
+### Q: OCR识别速度很慢怎么办？
+
+A:
+- 降低OCR并发数（在设置中调整）
+- 确保没有其他程序占用CPU
+- 如有NVIDIA显卡，可修改代码启用GPU加速
+
+### Q: 导入PDF时提示"无效的PDF文件"？
+
+A:
+- 确认文件是有效的PDF格式
+- 检查文件是否被其他程序锁定
+- 尝试用其他PDF阅读器打开确认文件正常
+
+### Q: 搜索不到内容？
+
+A:
+- 确认PDF已完成OCR处理（状态显示"已完成"）
+- 尝试使用不同的关键词搜索
+- 检查搜索词是否正确
+
+### Q: 如何备份数据？
+
+A:
+- 复制 `data/` 文件夹即可备份所有数据
+- 包括：数据库、PDF文件、索引、缩略图
+
+### Q: 如何迁移到新电脑？
+
+A:
+1. 在旧电脑复制整个项目文件夹
+2. 在新电脑安装Python和依赖
+3. 将项目文件夹复制到新电脑
+4. 运行应用即可
+
+## 更新日志
+
+### v0.1.0 (2024-03-13)
+
+- 初始版本发布
+- 支持PDF导入和OCR识别
+- 支持全文搜索
+- 支持文件夹管理
+- 内置PDF预览
+
+## 许可证
+
+本项目采用 MIT 许可证。
+
+## 致谢
+
+- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) - OCR引擎
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - PDF处理
+- [Whoosh](https://github.com/mchaput/whoosh) - 全文搜索
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) - GUI框架
