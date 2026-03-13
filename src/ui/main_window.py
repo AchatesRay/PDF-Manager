@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QSplitter,
     QLabel,
+    QLineEdit,
     QStatusBar,
     QMenuBar,
     QMenu,
@@ -18,6 +19,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
+
+from src.ui.widgets import FolderTreeWidget, PDFListWidget, PDFViewerWidget
+from src.ui.dialogs import SettingsDialog, ImportDialog
 
 if TYPE_CHECKING:
     from src.core.folder_manager import FolderManager
@@ -54,84 +58,8 @@ class ApplicationContext:
         self.search_service = search_service
 
 
-# Stub widgets - will be implemented in subsequent tasks
-class FolderTreeWidget(QWidget):
-    """文件夹树组件（占位符）"""
-
-    # 信号：选中文件夹变化
-    folder_selected = pyqtSignal(int)  # folder_id
-
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("文件夹树")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: gray; border: 1px dashed gray;")
-        layout.addWidget(label)
-
-    def load_folders(self) -> None:
-        """加载文件夹数据"""
-        pass
-
-    def get_selected_folder_id(self) -> Optional[int]:
-        """获取当前选中的文件夹ID"""
-        return None
-
-
-class PDFListWidget(QWidget):
-    """PDF列表组件（占位符）"""
-
-    # 信号：选中PDF变化
-    pdf_selected = pyqtSignal(int)  # pdf_id
-    # 信号：双击PDF
-    pdf_double_clicked = pyqtSignal(int)  # pdf_id
-
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("PDF列表")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: gray; border: 1px dashed gray;")
-        layout.addWidget(label)
-
-    def load_pdfs(self, folder_id: Optional[int] = None) -> None:
-        """加载PDF列表"""
-        pass
-
-    def refresh(self) -> None:
-        """刷新列表"""
-        pass
-
-    def get_selected_pdf_id(self) -> Optional[int]:
-        """获取当前选中的PDF ID"""
-        return None
-
-
-class PDFViewerWidget(QWidget):
-    """PDF预览组件（占位符）"""
-
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("PDF预览")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: gray; border: 1px dashed gray;")
-        layout.addWidget(label)
-
-    def load_pdf(self, pdf_id: int) -> None:
-        """加载PDF进行预览"""
-        pass
-
-    def clear(self) -> None:
-        """清空预览"""
-        pass
-
-
 class SearchBarWidget(QWidget):
-    """搜索栏组件（占位符）"""
+    """搜索栏组件"""
 
     # 信号：搜索请求
     search_requested = pyqtSignal(str)  # query
@@ -140,10 +68,19 @@ class SearchBarWidget(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("搜索栏")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: gray; border: 1px dashed gray;")
-        layout.addWidget(label)
+        layout.setSpacing(4)
+
+        self._search_input = QLineEdit()
+        self._search_input.setPlaceholderText("搜索PDF内容...")
+        self._search_input.returnPressed.connect(self._on_search)
+
+        layout.addWidget(self._search_input)
+
+    def _on_search(self) -> None:
+        """搜索触发"""
+        query = self._search_input.text().strip()
+        if query:
+            self.search_requested.emit(query)
 
 
 class MainWindow(QMainWindow):
@@ -205,7 +142,9 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(splitter)
 
         # 左侧：文件夹树
-        self._folder_tree = FolderTreeWidget()
+        self._folder_tree = FolderTreeWidget(
+            folder_manager=self._app_context.folder_manager
+        )
         splitter.addWidget(self._folder_tree)
 
         # 右侧：垂直分割器（搜索栏、PDF列表、预览）
@@ -217,11 +156,16 @@ class MainWindow(QMainWindow):
         right_splitter.addWidget(self._search_bar)
 
         # 右侧中间：PDF列表
-        self._pdf_list = PDFListWidget()
+        self._pdf_list = PDFListWidget(
+            pdf_manager=self._app_context.pdf_manager
+        )
         right_splitter.addWidget(self._pdf_list)
 
         # 右侧下方：PDF预览
-        self._pdf_viewer = PDFViewerWidget()
+        self._pdf_viewer = PDFViewerWidget(
+            pdf_manager=self._app_context.pdf_manager,
+            pdf_service=self._app_context.pdf_service
+        )
         right_splitter.addWidget(self._pdf_viewer)
 
         # 设置分割器比例
@@ -395,7 +339,18 @@ class MainWindow(QMainWindow):
         if file_dialog.exec():
             files = file_dialog.selectedFiles()
             self._status_label.setText(f"已选择 {len(files)} 个文件")
-            # TODO: 导入PDF文件
+
+            # 显示导入对话框
+            import_dialog = ImportDialog(
+                pdf_manager=self._app_context.pdf_manager,
+                parent=self
+            )
+            import_dialog.start_import(files, self._current_folder_id)
+            import_dialog.exec()
+
+            # 刷新列表
+            self._pdf_list.refresh()
+            self._update_status()
 
     def _on_add_folder(self) -> None:
         """添加文件夹处理"""
@@ -404,8 +359,26 @@ class MainWindow(QMainWindow):
 
     def _on_delete(self) -> None:
         """删除处理"""
-        # TODO: 根据当前焦点删除文件夹或PDF
-        self._status_label.setText("删除")
+        # 根据当前选中的PDF删除
+        if self._current_pdf_id is not None:
+            pdf = self._app_context.pdf_manager.get_pdf(self._current_pdf_id)
+            if pdf:
+                reply = QMessageBox.question(
+                    self,
+                    "确认删除",
+                    f"确定要删除PDF \"{pdf.filename}\" 吗？",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self._app_context.pdf_manager.delete_pdf(self._current_pdf_id)
+                    self._current_pdf_id = None
+                    self._pdf_viewer.clear()
+                    self._pdf_list.refresh()
+                    self._update_status()
+                    self._status_label.setText("已删除PDF")
+        else:
+            self._status_label.setText("请先选择要删除的PDF")
 
     def _on_export_data(self) -> None:
         """导出数据处理"""
@@ -432,8 +405,9 @@ class MainWindow(QMainWindow):
 
     def _on_preferences(self) -> None:
         """偏好设置处理"""
-        # TODO: 显示偏好设置对话框
-        self._status_label.setText("偏好设置")
+        dialog = SettingsDialog(config=self._app_context.config, parent=self)
+        if dialog.exec():
+            self._status_label.setText("设置已保存")
 
     def _on_about(self) -> None:
         """关于对话框"""
