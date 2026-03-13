@@ -1,5 +1,7 @@
 """主窗口模块"""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtWidgets import (
@@ -24,38 +26,7 @@ from src.ui.widgets import FolderTreeWidget, PDFListWidget, PDFViewerWidget
 from src.ui.dialogs import SettingsDialog, ImportDialog
 
 if TYPE_CHECKING:
-    from src.core.folder_manager import FolderManager
-    from src.core.pdf_manager import PDFManager
-    from src.core.search_service import SearchService
-    from src.models.database import Database
-    from src.services.pdf_service import PDFService
-    from src.services.ocr_service import OCRService
-    from src.services.index_service import IndexService
-    from src.utils.config import Config
-
-
-class ApplicationContext:
-    """应用上下文，持有所有服务和配置的引用"""
-
-    def __init__(
-        self,
-        database: "Database",
-        config: "Config",
-        pdf_service: "PDFService",
-        ocr_service: "OCRService",
-        index_service: "IndexService",
-        folder_manager: "FolderManager",
-        pdf_manager: "PDFManager",
-        search_service: "SearchService",
-    ):
-        self.database = database
-        self.config = config
-        self.pdf_service = pdf_service
-        self.ocr_service = ocr_service
-        self.index_service = index_service
-        self.folder_manager = folder_manager
-        self.pdf_manager = pdf_manager
-        self.search_service = search_service
+    from src.main import ApplicationContext
 
 
 class SearchBarWidget(QWidget):
